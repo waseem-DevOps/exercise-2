@@ -1,50 +1,66 @@
-name: CI/CD Pipeline
+name: CI/CD Java to AWS
 
 on:
   push:
-    branches: [develop, master]
+    branches:
+      - develop
+      - master
   pull_request:
-    branches: [master]
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Build & Deploy Java App
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      - name: Compile Code
-        run: javac src/Main.java
+    - name: Compile Java App
+      run: javac src/Main.java
 
-      - name: Run Tests (if any)
-        run: echo "Run tests here"
+    - name: Archive build artifact
+      run: |
+        mkdir build
+        cp src/*.class build/
 
-  deploy_dev:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: Deploy to Dev
-        run: echo "Deploying to Dev Environment (Simulated)"
+    - name: Deploy to DEV (S3)
+      if: github.ref == 'refs/heads/develop'
+      run: |
+        echo "Deploying to DEV..."
+        aws s3 cp ./build s3://$DEV_BUCKET_NAME/ --recursive
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        DEV_BUCKET_NAME: ${{ secrets.DEV_BUCKET_NAME }}
 
-  deploy_test:
-    needs: deploy_dev
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: Deploy to Test
-        run: echo "Deploying to Test Environment (Simulated)"
+    - name: Deploy to TEST (S3)
+      if: github.ref == 'refs/heads/develop'
+      run: |
+        echo "Deploying to TEST..."
+        aws s3 cp ./build s3://$TEST_BUCKET_NAME/ --recursive
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        TEST_BUCKET_NAME: ${{ secrets.TEST_BUCKET_NAME }}
 
-  deploy_stg:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'pull_request'
-    steps:
-      - name: Deploy to STG
-        run: echo "Deploying to STG Environment (Simulated)"
+    - name: Deploy to STG (S3)
+      if: github.event_name == 'pull_request' && github.base_ref == 'master'
+      run: |
+        echo "Deploying to STG..."
+        aws s3 cp ./build s3://$STG_BUCKET_NAME/ --recursive
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        STG_BUCKET_NAME: ${{ secrets.STG_BUCKET_NAME }}
