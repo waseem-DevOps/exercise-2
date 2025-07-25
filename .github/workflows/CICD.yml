@@ -1,0 +1,50 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [develop, master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Compile Code
+        run: javac src/Main.java
+
+      - name: Run Tests (if any)
+        run: echo "Run tests here"
+
+  deploy_dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Deploy to Dev
+        run: echo "Deploying to Dev Environment (Simulated)"
+
+  deploy_test:
+    needs: deploy_dev
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Deploy to Test
+        run: echo "Deploying to Test Environment (Simulated)"
+
+  deploy_stg:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'pull_request'
+    steps:
+      - name: Deploy to STG
+        run: echo "Deploying to STG Environment (Simulated)"
