@@ -50,8 +50,7 @@ Check:
 ---
 
 
-## Running Locally
+## Gitting repo locally: 
 
 git clone https://github.com/waseem-DevOps/exercise-2 
 cd exercise-2 
-docker-compose up --build
